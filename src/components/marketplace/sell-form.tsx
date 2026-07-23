@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 
 import { createListing, type ListingFormState } from "@/app/actions/listing";
 
-const MAX_PHOTO_MB = 5;
+const MAX_PHOTO_MB = 4;
 
 const labelCls = "mono-label text-muted-foreground";
 const inputCls =
@@ -178,7 +178,7 @@ export function SellForm() {
           className="file:bg-brand file:text-brand-foreground text-muted-foreground mt-1.5 w-full cursor-pointer text-sm file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:px-4 file:py-2 file:text-xs file:font-semibold"
         />
         <span className="text-muted-foreground/70 mt-1.5 block text-xs">
-          JPG, PNG or WebP, up to 5 MB. A clear photo of the actual copy sells faster.
+          JPG, PNG or WebP, up to 4 MB. A clear photo of the actual copy sells faster.
         </span>
       </label>
 

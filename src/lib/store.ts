@@ -24,6 +24,15 @@ export type User = {
   createdAt: string;
 };
 
+/**
+ * On hosts with a read-only disk (Vercel serverless), file writes fail — so
+ * data falls back to these in-memory copies for the life of the server
+ * instance. Cloud demo works fully; data resets when the instance recycles.
+ * Local/production servers with a real disk never populate these.
+ */
+let memUsers: User[] | null = null;
+let memListings: Book[] | null = null;
+
 function readJson<T>(file: string, fallback: T): T {
   try {
     return JSON.parse(fs.readFileSync(file, "utf8")) as T;
@@ -32,9 +41,15 @@ function readJson<T>(file: string, fallback: T): T {
   }
 }
 
-function writeJson(file: string, data: unknown) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf8");
+/** Returns false when the disk can't be written — caller switches to memory. */
+function writeJson(file: string, data: unknown): boolean {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf8");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -43,6 +58,7 @@ function writeJson(file: string, data: unknown) {
  * file, means the account survives a `git reset --hard checkpoint-1` too.
  */
 export function getUsers(): User[] {
+  if (memUsers) return memUsers;
   const existing = readJson<User[] | null>(USERS_FILE, null);
   // Re-seed on missing, corrupt, OR emptied file — the demo account must
   // always be able to log in.
@@ -56,7 +72,7 @@ export function getUsers(): User[] {
       createdAt: new Date().toISOString(),
     },
   ];
-  writeJson(USERS_FILE, seeded);
+  if (!writeJson(USERS_FILE, seeded)) memUsers = seeded;
   return seeded;
 }
 
@@ -67,12 +83,12 @@ export function findUserByEmail(email: string) {
 export function createUser(user: User) {
   const users = getUsers();
   users.push(user);
-  writeJson(USERS_FILE, users);
+  if (!writeJson(USERS_FILE, users)) memUsers = users;
 }
 
 /** Books listed by real signed-in users (the demo set stays in books.ts). */
 export function getUserListings(): Book[] {
-  const raw = readJson<unknown>(LISTINGS_FILE, []);
+  const raw = memListings ?? readJson<unknown>(LISTINGS_FILE, []);
   if (!Array.isArray(raw)) return [];
   // Drop any hand-edited entry missing a field the UI renders — one bad row
   // in the JSON must never take down the whole marketplace.
@@ -95,7 +111,7 @@ export function getUserListings(): Book[] {
 export function addListing(book: Book) {
   const listings = getUserListings();
   listings.unshift(book); // newest first
-  writeJson(LISTINGS_FILE, listings);
+  if (!writeJson(LISTINGS_FILE, listings)) memListings = listings;
 }
 
 /** One seller's own listings — powers the private profile portfolio. */
@@ -116,10 +132,8 @@ export function removeListing(id: string, ownerEmail: string): Book | null {
   if (!target || target.sellerEmail?.toLowerCase() !== ownerEmail.toLowerCase()) {
     return null;
   }
-  writeJson(
-    LISTINGS_FILE,
-    listings.filter((b) => b.id !== id),
-  );
+  const remaining = listings.filter((b) => b.id !== id);
+  if (!writeJson(LISTINGS_FILE, remaining)) memListings = remaining;
   return target;
 }
 

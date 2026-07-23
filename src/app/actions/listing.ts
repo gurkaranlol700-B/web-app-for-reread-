@@ -8,12 +8,15 @@ import { redirect } from "next/navigation";
 
 import type { Book, Condition } from "@/data/books";
 import { getCurrentUser } from "@/lib/auth";
+import { MEMORY_PHOTOS } from "@/lib/photo-cache";
 import { addListing, removeListing } from "@/lib/store";
 
 export type ListingFormState = { error?: string };
 
 const CONDITIONS: Condition[] = ["New", "Like New", "Good", "Fair"];
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// 4MB, not 5: Vercel hard-rejects request bodies over ~4.5MB, so the cap must
+// sit safely under that for the cloud deployment.
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 // Whitelist of accepted photo types -> file extension we save with. The
 // filename is always OUR generated id, never the uploaded name, so a
 // malicious "../../evil.exe" filename can't escape /public/uploads.
@@ -55,7 +58,7 @@ export async function createListing(
     return { error: "Please upload a photo of the book." };
   }
   if (!IMAGE_EXT[cover.type]) return { error: "The photo must be a JPG, PNG or WebP image." };
-  if (cover.size > MAX_IMAGE_BYTES) return { error: "The photo is too big — keep it under 5 MB." };
+  if (cover.size > MAX_IMAGE_BYTES) return { error: "The photo is too big — keep it under 4 MB." };
 
   // The seller agreement — server-side check so it can't be skipped by
   // editing the page. All three must be ticked.
@@ -91,12 +94,18 @@ export async function createListing(
     sellerEmail: user.email,
     views: 0,
   };
-  // Disk writes are the only part that can genuinely fail — if they do, the
-  // seller gets a friendly retry message instead of a crashed page.
+  // Disk writes can fail two ways: a transient error (seller gets a friendly
+  // retry message) or a read-only host like Vercel (photo falls back to the
+  // in-memory cache served by the /uploads route).
   try {
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    fs.mkdirSync(uploadsDir, { recursive: true });
-    fs.writeFileSync(path.join(uploadsDir, filename), Buffer.from(await cover.arrayBuffer()));
+    const bytes = Buffer.from(await cover.arrayBuffer());
+    try {
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      fs.writeFileSync(path.join(uploadsDir, filename), bytes);
+    } catch {
+      MEMORY_PHOTOS.set(filename, { bytes: new Uint8Array(bytes), type: cover.type });
+    }
     addListing(book);
   } catch {
     return { error: "Couldn't save your listing — please try again." };
@@ -122,6 +131,7 @@ export async function deleteListing(formData: FormData): Promise<void> {
   const removed = removeListing(id, user.email);
 
   if (removed && removed.coverImage.startsWith("/uploads/")) {
+    MEMORY_PHOTOS.delete(removed.coverImage.split("/").pop() ?? "");
     try {
       fs.unlinkSync(path.join(process.cwd(), "public", removed.coverImage.slice(1)));
     } catch {

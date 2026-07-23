@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { MEMORY_PHOTOS } from "@/lib/photo-cache";
+
 /**
  * Serves seller-uploaded book photos in PRODUCTION.
  *
@@ -38,6 +40,16 @@ export async function GET(
       },
     });
   } catch {
+    // Not on disk — read-only host (Vercel): the upload lives in memory.
+    const cached = MEMORY_PHOTOS.get(filename);
+    if (cached) {
+      return new Response(cached.bytes, {
+        headers: {
+          "Content-Type": cached.type,
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
+    }
     return new Response("Not found", { status: 404 });
   }
 }

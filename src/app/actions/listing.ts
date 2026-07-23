@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 
 import type { Book, Condition } from "@/data/books";
 import { getCurrentUser } from "@/lib/auth";
+import { IS_CLOUD_DEMO } from "@/lib/cloud";
 import { MEMORY_PHOTOS } from "@/lib/photo-cache";
 import { addListing, removeListing } from "@/lib/store";
 
@@ -31,7 +32,7 @@ export async function createListing(
   formData: FormData,
 ): Promise<ListingFormState> {
   // Mirror of the /sell page's cloud gate — can't be bypassed with a crafted request.
-  if (process.env.VERCEL) {
+  if (IS_CLOUD_DEMO) {
     return { error: "Listing books on the live site arrives in Version 2." };
   }
   const user = await getCurrentUser();

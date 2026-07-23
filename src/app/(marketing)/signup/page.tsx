@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { SignupForm } from "@/components/auth/signup-form";
 import { ComingSoon } from "@/components/layout/coming-soon";
+import { IS_CLOUD_DEMO } from "@/lib/cloud";
 
 export const metadata = { title: "Sign up" };
 
@@ -13,7 +14,7 @@ export default async function SignupPage({
   // Cloud demo: new accounts can't persist reliably on Vercel's rotating
   // read-only servers (a signup could "vanish" minutes later). Gated until
   // the database milestone; the demo login account works everywhere.
-  if (process.env.VERCEL) {
+  if (IS_CLOUD_DEMO) {
     return <ComingSoon feature="Public sign-ups" version="2" />;
   }
 

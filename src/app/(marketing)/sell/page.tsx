@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ComingSoon } from "@/components/layout/coming-soon";
 import { SellForm } from "@/components/marketplace/sell-form";
 import { getCurrentUser } from "@/lib/auth";
+import { IS_CLOUD_DEMO } from "@/lib/cloud";
 
 export const metadata = { title: "List a Book" };
 
@@ -12,7 +13,7 @@ export default async function SellPage() {
   // see a listing vanish, gate the flow with the polished Coming Soon page.
   // The full sell flow runs on the local deployment; a real database unlocks
   // it in the cloud (next milestone).
-  if (process.env.VERCEL) {
+  if (IS_CLOUD_DEMO) {
     return <ComingSoon feature="Listing books on the live site" version="2" />;
   }
 

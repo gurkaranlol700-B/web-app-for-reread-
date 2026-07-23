@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createSession, destroySession } from "@/lib/auth";
+import { IS_CLOUD_DEMO } from "@/lib/cloud";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createUser, findUserByEmail } from "@/lib/store";
 
@@ -37,7 +38,7 @@ export async function signup(
   formData: FormData,
 ): Promise<AuthFormState> {
   // Mirror of the /signup page's cloud gate — can't be bypassed with a crafted request.
-  if (process.env.VERCEL) {
+  if (IS_CLOUD_DEMO) {
     return { error: "Public sign-ups arrive in Version 2." };
   }
   const name = String(formData.get("name") ?? "").trim();

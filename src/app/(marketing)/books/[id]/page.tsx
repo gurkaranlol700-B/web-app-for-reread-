@@ -1,9 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Heart, MapPin, Share2 } from "lucide-react";
 
 import { ConditionBadge } from "@/components/marketplace/condition-badge";
-import { BOOKS, getBookById } from "@/data/books";
+import { BOOKS, getBookById, getDiscountPercent } from "@/data/books";
 
 export function generateStaticParams() {
   return BOOKS.map((book) => ({ id: book.id }));
@@ -39,10 +40,15 @@ export default async function BookDetailPage({
       </Link>
 
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_1.1fr]">
-        <div className="bg-accent/30 border-border flex aspect-[4/5] items-center justify-center rounded-2xl border px-8">
-          <span className="font-serif text-muted-foreground/70 text-center text-2xl italic">
-            {book.title}
-          </span>
+        <div className="bg-accent/30 border-border relative aspect-[4/5] overflow-hidden rounded-2xl border">
+          <Image
+            src={book.coverImage}
+            alt={`Cover of ${book.title}`}
+            fill
+            sizes="(min-width: 1024px) 40vw, 90vw"
+            className="object-contain p-8"
+            priority
+          />
         </div>
 
         <div>
@@ -59,7 +65,17 @@ export default async function BookDetailPage({
           <h1 className="mt-4 text-[clamp(1.9rem,4vw,2.75rem)] leading-tight font-medium">
             {book.title}
           </h1>
-          <p className="text-brand mt-2 font-serif text-3xl font-semibold">₹{book.price}</p>
+          <div className="mt-2 flex flex-wrap items-baseline gap-3">
+            <p className="text-brand font-serif text-3xl font-semibold">
+              ₹{book.price.toLocaleString("en-IN")}
+            </p>
+            <p className="text-muted-foreground/60 text-lg line-through">
+              ₹{book.originalPrice.toLocaleString("en-IN")}
+            </p>
+            <span className="bg-brand/10 text-brand rounded-full px-2.5 py-0.5 text-xs font-semibold">
+              {`Save ${getDiscountPercent(book)}% vs new`}
+            </span>
+          </div>
 
           <div className="mt-6 flex items-center gap-3">
             <Link

@@ -1,10 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Eye, Heart, MapPin } from "lucide-react";
 
 import { ConditionBadge } from "@/components/marketplace/condition-badge";
-import type { Book } from "@/data/books";
+import { getDiscountPercent, type Book } from "@/data/books";
 
 /**
  * The marketplace's core unit, reused on the homepage's "Featured Editions"
@@ -18,21 +19,25 @@ export function BookCard({ book }: { book: Book }) {
       href={`/books/${book.id}`}
       className="border-border bg-card group focus-visible:ring-ring block overflow-hidden rounded-xl border transition-colors hover:border-brand/50 focus-visible:ring-2 focus-visible:outline-none"
     >
-      <div className="bg-accent/30 relative flex aspect-[4/3] items-center justify-center px-6">
-        <div className="absolute top-3 left-3">
+      <div className="bg-accent/30 relative aspect-[4/3]">
+        <div className="absolute top-3 left-3 z-10">
           <ConditionBadge condition={book.condition} />
         </div>
         <button
           type="button"
           aria-label="Save to wishlist"
           onClick={(e) => e.preventDefault()}
-          className="bg-background/70 text-foreground hover:text-brand absolute top-3 right-3 flex size-8 items-center justify-center rounded-full backdrop-blur-sm transition-colors"
+          className="bg-background/70 text-foreground hover:text-brand absolute top-3 right-3 z-10 flex size-8 items-center justify-center rounded-full backdrop-blur-sm transition-colors"
         >
           <Heart className="size-4" />
         </button>
-        <span className="font-serif text-muted-foreground/70 text-center text-lg italic">
-          {book.title}
-        </span>
+        <Image
+          src={book.coverImage}
+          alt={`Cover of ${book.title}`}
+          fill
+          sizes="(min-width: 1024px) 22vw, (min-width: 640px) 45vw, 90vw"
+          className="object-contain p-5 transition-transform duration-300 group-hover:scale-[1.03]"
+        />
       </div>
 
       <div className="p-4">
@@ -40,9 +45,19 @@ export function BookCard({ book }: { book: Book }) {
           <h3 className="font-serif line-clamp-2 text-base leading-snug font-medium">
             {book.title}
           </h3>
-          <span className="text-brand shrink-0 font-serif text-lg font-semibold">
-            ₹{book.price}
-          </span>
+          <div className="shrink-0 text-right">
+            <div className="flex items-baseline justify-end gap-1.5">
+              <span className="text-muted-foreground/60 text-xs line-through">
+                ₹{book.originalPrice.toLocaleString("en-IN")}
+              </span>
+              <span className="text-brand font-serif text-lg font-semibold">
+                ₹{book.price.toLocaleString("en-IN")}
+              </span>
+            </div>
+            <span className="text-brand mt-0.5 inline-block text-[0.65rem] font-semibold tracking-wide">
+              {`Save ${getDiscountPercent(book)}%`}
+            </span>
+          </div>
         </div>
         <p className="text-muted-foreground mt-1.5 text-sm">
           {book.subject} • {book.className} • {book.board}

@@ -30,6 +30,10 @@ export async function createListing(
   _prev: ListingFormState,
   formData: FormData,
 ): Promise<ListingFormState> {
+  // Mirror of the /sell page's cloud gate — can't be bypassed with a crafted request.
+  if (process.env.VERCEL) {
+    return { error: "Listing books on the live site arrives in Version 2." };
+  }
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/sell");
 

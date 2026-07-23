@@ -36,6 +36,10 @@ export async function signup(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  // Mirror of the /signup page's cloud gate — can't be bypassed with a crafted request.
+  if (process.env.VERCEL) {
+    return { error: "Public sign-ups arrive in Version 2." };
+  }
   const name = String(formData.get("name") ?? "").trim();
   const school = String(formData.get("school") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();

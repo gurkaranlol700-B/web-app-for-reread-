@@ -19,6 +19,8 @@ export type Book = {
   school: string;
   sellerName: string;
   sellerInitial: string;
+  /** Real contact for user-created listings; demo books fall back to a placeholder. */
+  sellerEmail?: string;
   views: number;
 };
 
@@ -260,24 +262,10 @@ export const BOOKS: Book[] = [
   },
 ];
 
-export function getBookById(id: string) {
-  return BOOKS.find((book) => book.id === id);
-}
-
 /** Percentage saved vs the original MRP, e.g. 85 for ₹980 → ₹150. */
 export function getDiscountPercent(book: Pick<Book, "price" | "originalPrice">) {
   return Math.round((1 - book.price / book.originalPrice) * 100);
 }
 
-export function getMarketplaceStats() {
-  const schools = new Set(BOOKS.map((b) => b.school));
-  const sellers = new Set(BOOKS.map((b) => b.sellerName));
-  // Real money saved = the gap between MRP and ReRead's resale price.
-  const moneySaved = BOOKS.reduce((sum, b) => sum + (b.originalPrice - b.price), 0);
-  return {
-    booksListed: BOOKS.length,
-    activeStudents: sellers.size,
-    moneySaved,
-    schoolsConnected: schools.size,
-  };
-}
+// Book lookup and marketplace stats now live in src/lib/store.ts, which
+// merges these demo books with real user listings from `.data/`.

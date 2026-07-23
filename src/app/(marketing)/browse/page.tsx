@@ -1,14 +1,15 @@
-import { BookCard } from "@/components/marketplace/book-card";
-import { BOOKS } from "@/data/books";
+import { BrowseGrid } from "@/components/marketplace/browse-grid";
+import { getCatalog } from "@/lib/store";
 
 export const metadata = { title: "Browse books" };
 
 /**
- * Real listings, not a placeholder -- filtering by class/subject/board/price
- * is Milestone 4, but showing the marketplace populated and browsable now
- * (with demo data) makes the product feel alive rather than empty.
+ * The full shelf: real user listings (newest first) merged with the demo
+ * catalog, with instant client-side search and class/subject filters.
  */
 export default function BrowsePage() {
+  const books = getCatalog();
+
   return (
     <div className="mx-auto w-full max-w-[90rem] px-6 py-16 sm:px-10 sm:py-20">
       <span className="mono-label text-brand">Explore</span>
@@ -16,14 +17,10 @@ export default function BrowsePage() {
         Every book, one shelf.
       </h1>
       <p className="text-muted-foreground mt-3 max-w-lg leading-relaxed">
-        {`${BOOKS.length} books listed by students near you. Filtering by class, subject, board and price is coming in Milestone 4 — for now, here’s everything.`}
+        {`${books.length} books listed by students near you. Search by title or publisher, filter by class and subject.`}
       </p>
 
-      <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {BOOKS.map((book) => (
-          <BookCard key={book.id} book={book} />
-        ))}
-      </div>
+      <BrowseGrid books={books} />
     </div>
   );
 }

@@ -47,16 +47,20 @@ export function BookCard({ book }: { book: Book }) {
           </h3>
           <div className="shrink-0 text-right">
             <div className="flex items-baseline justify-end gap-1.5">
-              <span className="text-muted-foreground/60 text-xs line-through">
-                ₹{book.originalPrice.toLocaleString("en-IN")}
-              </span>
+              {book.originalPrice > book.price ? (
+                <span className="text-muted-foreground/60 text-xs line-through">
+                  ₹{book.originalPrice.toLocaleString("en-IN")}
+                </span>
+              ) : null}
               <span className="text-brand font-serif text-lg font-semibold">
                 ₹{book.price.toLocaleString("en-IN")}
               </span>
             </div>
-            <span className="text-brand mt-0.5 inline-block text-[0.65rem] font-semibold tracking-wide">
-              {`Save ${getDiscountPercent(book)}%`}
-            </span>
+            {book.originalPrice > book.price ? (
+              <span className="text-brand mt-0.5 inline-block text-[0.65rem] font-semibold tracking-wide">
+                {`Save ${getDiscountPercent(book)}%`}
+              </span>
+            ) : null}
           </div>
         </div>
         <p className="text-muted-foreground mt-1.5 text-sm">

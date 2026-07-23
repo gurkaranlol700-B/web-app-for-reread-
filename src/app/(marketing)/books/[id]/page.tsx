@@ -1,12 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Heart, MapPin, Share2 } from "lucide-react";
+import { ArrowLeft, Heart, Mail, MapPin, Share2 } from "lucide-react";
 
 import { ConditionBadge } from "@/components/marketplace/condition-badge";
-import { BOOKS, getBookById, getDiscountPercent } from "@/data/books";
+import { BOOKS, getDiscountPercent } from "@/data/books";
+import { getCurrentUser } from "@/lib/auth";
+import { findBook } from "@/lib/store";
 
 export function generateStaticParams() {
+  // Demo books are known at build time; user listings render on demand.
   return BOOKS.map((book) => ({ id: book.id }));
 }
 
@@ -16,7 +19,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const book = getBookById(id);
+  const book = findBook(id);
   return { title: book ? book.title : "Book not found" };
 }
 
@@ -26,8 +29,14 @@ export default async function BookDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const book = getBookById(id);
+  const book = findBook(id);
   if (!book) notFound();
+
+  const user = await getCurrentUser();
+  // Demo sellers have no real inbox — use the reserved example.com domain.
+  const contactEmail =
+    book.sellerEmail ?? `${book.sellerName.toLowerCase().replace(/\s+/g, ".")}@example.com`;
+  const hasDiscount = book.originalPrice > book.price;
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-12 sm:px-10 sm:py-16">
@@ -69,21 +78,35 @@ export default async function BookDetailPage({
             <p className="text-brand font-serif text-3xl font-semibold">
               ₹{book.price.toLocaleString("en-IN")}
             </p>
-            <p className="text-muted-foreground/60 text-lg line-through">
-              ₹{book.originalPrice.toLocaleString("en-IN")}
-            </p>
-            <span className="bg-brand/10 text-brand rounded-full px-2.5 py-0.5 text-xs font-semibold">
-              {`Save ${getDiscountPercent(book)}% vs new`}
-            </span>
+            {hasDiscount ? (
+              <>
+                <p className="text-muted-foreground/60 text-lg line-through">
+                  ₹{book.originalPrice.toLocaleString("en-IN")}
+                </p>
+                <span className="bg-brand/10 text-brand rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                  {`Save ${getDiscountPercent(book)}% vs new`}
+                </span>
+              </>
+            ) : null}
           </div>
 
           <div className="mt-6 flex items-center gap-3">
-            <Link
-              href="/login"
-              className="bg-brand text-brand-foreground inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold transition-opacity hover:opacity-90"
-            >
-              Contact Seller
-            </Link>
+            {user ? (
+              <a
+                href={`mailto:${contactEmail}?subject=${encodeURIComponent(`ReRead: ${book.title}`)}`}
+                className="bg-brand text-brand-foreground inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold transition-opacity hover:opacity-90"
+              >
+                <Mail className="size-4" />
+                Email Seller
+              </a>
+            ) : (
+              <Link
+                href={`/login?next=/books/${book.id}`}
+                className="bg-brand text-brand-foreground inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold transition-opacity hover:opacity-90"
+              >
+                Log in to Contact Seller
+              </Link>
+            )}
             <button
               type="button"
               aria-label="Save to wishlist"
@@ -126,7 +149,9 @@ export default async function BookDetailPage({
               </span>
               <div>
                 <p className="font-medium">{book.sellerName}</p>
-                <p className="text-muted-foreground text-sm">Student</p>
+                <p className="text-muted-foreground text-sm">
+                  {user ? contactEmail : "Student"}
+                </p>
               </div>
             </div>
             <span className="text-muted-foreground flex items-center gap-1 text-sm">

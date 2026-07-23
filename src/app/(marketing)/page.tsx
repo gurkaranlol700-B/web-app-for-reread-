@@ -3,7 +3,7 @@ import { BookOpen, Leaf, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Reveal } from "@/components/motion/reveal";
 import { BookCard } from "@/components/marketplace/book-card";
-import { BOOKS, getMarketplaceStats } from "@/data/books";
+import { getCatalog, getStats } from "@/lib/store";
 
 function formatMoney(amount: number) {
   if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
@@ -29,8 +29,10 @@ const reasons = [
 ];
 
 export default function HomePage() {
-  const stats = getMarketplaceStats();
-  const featured = BOOKS.slice(0, 4);
+  const stats = getStats();
+  // Freshly listed user books lead the Featured row — instant gratification
+  // for a seller who just posted.
+  const featured = getCatalog().slice(0, 4);
 
   return (
     <>

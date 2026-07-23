@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# runtime data (accounts, listings, uploaded book photos) — not part of the code
+/.data/
+/public/uploads/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

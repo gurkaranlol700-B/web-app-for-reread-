@@ -1,5 +1,7 @@
 export type Condition = "New" | "Like New" | "Good" | "Fair";
 
+export type ListingStatus = "active" | "reserved" | "sold" | "removed";
+
 export type Book = {
   id: string;
   title: string;
@@ -7,7 +9,7 @@ export type Book = {
   price: number;
   /** Real new-book MRP, shown struck-through to highlight the saving. */
   originalPrice: number;
-  /** Cover art in /public/covers, sourced from the real listing. */
+  /** Cover art — a Supabase Storage URL for real listings, /covers/* for seeds. */
   coverImage: string;
   condition: Condition;
   subject: string;
@@ -22,6 +24,22 @@ export type Book = {
   /** Real contact for user-created listings; demo books fall back to a placeholder. */
   sellerEmail?: string;
   views: number;
+
+  // ---- Fields below are populated from the database. They are optional so
+  // ---- the seed array in this file stays readable and doesn't repeat defaults.
+
+  /** Profile id of the seller — the join key for chat, orders and reviews. */
+  sellerId?: string;
+  status?: ListingStatus;
+  /** ISO timestamp while a paid boost is running, null otherwise. */
+  featuredUntil?: string | null;
+  /** Seller's rolled-up review score, shown as stars on the card. */
+  sellerRating?: number;
+  sellerRatingCount?: number;
+  sellerIsPlus?: boolean;
+  sellerIsVerified?: boolean;
+  /** ISO creation time — drives Plus early access and "newest first" sorting. */
+  createdAt?: string;
 };
 
 /**

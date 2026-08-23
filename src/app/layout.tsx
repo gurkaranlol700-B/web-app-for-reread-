@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter, JetBrains_Mono } from "next/font/google";
 
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -29,13 +30,57 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+/** Used for absolute URLs in OG tags and the sitemap. */
+export const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://web-app-for-reread.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "ReRead — Pass knowledge forward",
     template: "%s · ReRead",
   },
   description:
-    "ReRead is the premium marketplace for school textbooks. Save money, reduce waste, and connect with students in your community.",
+    "ReRead is the marketplace for school textbooks. Buy and sell with students at your own school, save up to 85%, and keep good books out of the bin.",
+  applicationName: "ReRead",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "ReRead",
+    // The forest-green status bar continues the app's own surface instead of
+    // leaving a white strip above it on iPhone.
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  openGraph: {
+    type: "website",
+    siteName: "ReRead",
+    title: "ReRead — Pass knowledge forward",
+    description:
+      "Buy and sell school textbooks with students at your own school. Save money, cut waste.",
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ReRead — Pass knowledge forward",
+    description: "The marketplace for school textbooks.",
+  },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FAF8F3" },
+    { media: "(prefers-color-scheme: dark)", color: "#0F2A1E" },
+  ],
+  // `viewportFit: cover` lets the app paint under an iPhone's notch, which is
+  // what makes an installed PWA stop looking like a website.
+  viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -58,6 +103,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <InstallPrompt />
         </ThemeProvider>
       </body>
     </html>

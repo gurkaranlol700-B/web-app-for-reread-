@@ -3,9 +3,18 @@
 import { redirect } from "next/navigation";
 
 import { createSession, destroySession } from "@/lib/auth";
-import { IS_CLOUD_DEMO } from "@/lib/cloud";
+import { notify } from "@/lib/notify";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { createUser, findUserByEmail } from "@/lib/store";
+import { REFERRAL_BOOST_CREDITS, REFERRAL_WALLET_CREDIT, rupees } from "@/lib/pricing";
+import { rateLimit } from "@/lib/rate-limit";
+import {
+  bumpUser,
+  createUser,
+  findUserByEmail,
+  findUserByReferralCode,
+  type User,
+} from "@/lib/store";
+import { loginSchema, parseForm, signupSchema } from "@/lib/validation";
 
 export type AuthFormState = { error?: string };
 
@@ -15,57 +24,92 @@ function safeNext(raw: FormDataEntryValue | null) {
   return value.startsWith("/") && !value.startsWith("//") ? value : "/";
 }
 
-export async function login(
-  _prev: AuthFormState,
-  formData: FormData,
-): Promise<AuthFormState> {
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+export async function login(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
+  const parsed = parseForm(loginSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { email, password } = parsed.data;
 
-  const user = email ? findUserByEmail(email) : undefined;
+  // Slows password guessing to a crawl without ever locking out a real
+  // student who fat-fingered their password twice.
+  const gate = rateLimit(`login:${email.toLowerCase()}`, 8, 60_000);
+  if (!gate.allowed) {
+    return { error: `Too many attempts. Try again in ${gate.retryAfterSeconds}s.` };
+  }
+
+  let user: User | null = null;
+  try {
+    user = await findUserByEmail(email);
+  } catch {
+    return { error: "Can't reach the server right now — please try again." };
+  }
+
   // One vague message for both "no such user" and "wrong password" — never
   // tell an attacker which emails have accounts.
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return { error: "Wrong email or password. Try again." };
   }
 
-  await createSession(user.email);
+  await createSession(user);
   redirect(safeNext(formData.get("next")));
 }
 
-export async function signup(
-  _prev: AuthFormState,
-  formData: FormData,
-): Promise<AuthFormState> {
-  // Mirror of the /signup page's cloud gate — can't be bypassed with a crafted request.
-  if (IS_CLOUD_DEMO) {
-    return { error: "Public sign-ups arrive in Version 2." };
-  }
-  const name = String(formData.get("name") ?? "").trim();
-  const school = String(formData.get("school") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+export async function signup(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
+  const parsed = parseForm(signupSchema, formData);
+  if (!parsed.ok) return { error: parsed.error };
+  const { name, school, className, email, password, referralCode } = parsed.data;
 
-  if (name.length < 2) return { error: "Please enter your name." };
-  if (school.length < 2) return { error: "Please enter your school." };
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "That email doesn't look right." };
-  if (password.length < 3) return { error: "Password needs at least 3 characters." };
-  if (findUserByEmail(email)) {
-    return { error: "An account with this email already exists — try logging in instead." };
+  const gate = rateLimit(`signup:${email.toLowerCase()}`, 5, 300_000);
+  if (!gate.allowed) {
+    return { error: `Too many sign-up attempts. Try again in ${gate.retryAfterSeconds}s.` };
   }
 
+  let created: User;
   try {
-    createUser({
+    if (await findUserByEmail(email)) {
+      return { error: "An account with this email already exists — try logging in instead." };
+    }
+
+    const referrer = referralCode ? await findUserByReferralCode(referralCode) : null;
+
+    created = await createUser({
       name,
       school,
+      className,
       email,
       passwordHash: hashPassword(password),
-      createdAt: new Date().toISOString(),
+      referredBy: referrer?.id ?? null,
+    });
+
+    // Both sides of a referral get paid — that symmetry is what makes people
+    // actually share the code.
+    if (referrer) {
+      await Promise.all([
+        bumpUser(referrer.id, "boost_credits", REFERRAL_BOOST_CREDITS),
+        bumpUser(created.id, "wallet_credit", REFERRAL_WALLET_CREDIT),
+        notify({
+          userId: referrer.id,
+          kind: "referral",
+          title: `${name} joined with your code`,
+          body: `You earned a free listing boost. Keep sharing ${referrer.referralCode}.`,
+          link: "/profile",
+        }),
+      ]);
+    }
+
+    await notify({
+      userId: created.id,
+      kind: "system",
+      title: "Welcome to ReRead",
+      body: referrer
+        ? `You've got ${rupees(REFERRAL_WALLET_CREDIT)} credit off your first book. List a book to start earning.`
+        : "List your first book — it takes about a minute.",
+      link: "/sell",
     });
   } catch {
     return { error: "Couldn't create your account — please try again." };
   }
-  await createSession(email);
+
+  await createSession(created);
   redirect(safeNext(formData.get("next")));
 }
 

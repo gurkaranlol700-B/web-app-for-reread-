@@ -1,14 +1,34 @@
 import { BrowseGrid } from "@/components/marketplace/browse-grid";
+import { getCurrentUser } from "@/lib/auth";
+import { getActiveAds, trackAdEvent } from "@/lib/monetize";
 import { getCatalog } from "@/lib/store";
+import { getWishlistIds } from "@/lib/wishlist";
 
-export const metadata = { title: "Browse books" };
+export const metadata = {
+  title: "Browse books",
+  description:
+    "Every textbook on ReRead — search by title or publisher, filter by class and subject, and buy from students near you.",
+};
+export const dynamic = "force-dynamic";
 
 /**
- * The full shelf: real user listings (newest first) merged with the demo
- * catalog, with instant client-side search and class/subject filters.
+ * The full shelf: real listings with instant client-side search, filters and
+ * sort, plus sponsored cards for everyone who isn't a Plus member.
  */
-export default function BrowsePage() {
-  const books = getCatalog();
+export default async function BrowsePage() {
+  const user = await getCurrentUser();
+
+  const [books, savedIds, ads] = await Promise.all([
+    getCatalog(),
+    user ? getWishlistIds(user.id) : Promise.resolve(new Set<string>()),
+    // Revenue stream three, and one of the reasons to pay for Plus: members
+    // see no advertising at all.
+    user?.isPlus ? Promise.resolve([]) : getActiveAds(3),
+  ]);
+
+  // One impression per ad per page view, counted server-side so ad blockers
+  // can't quietly deflate an advertiser's numbers.
+  for (const ad of ads) void trackAdEvent(ad.id, "impression");
 
   return (
     <div className="mx-auto w-full max-w-[90rem] px-6 py-16 sm:px-10 sm:py-20">
@@ -20,7 +40,7 @@ export default function BrowsePage() {
         {`${books.length} books listed by students near you. Search by title or publisher, filter by class and subject.`}
       </p>
 
-      <BrowseGrid books={books} />
+      <BrowseGrid books={books} savedIds={[...savedIds]} ads={ads} />
     </div>
   );
 }

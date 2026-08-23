@@ -8,11 +8,21 @@ const labelCls = "mono-label text-muted-foreground";
 const inputCls =
   "border-border bg-card focus-visible:ring-ring placeholder:text-muted-foreground/50 mt-1.5 w-full rounded-xl border px-4 py-3 text-sm transition-colors outline-none focus-visible:ring-2";
 
-export function SignupForm({ next }: { next: string }) {
+export function SignupForm({
+  next,
+  referralCode = "",
+  /** True when social buttons sit above and have already provided the spacing. */
+  compact = false,
+}: {
+  next: string;
+  /** Pre-filled when someone arrives from an invite link (/signup?ref=CODE). */
+  referralCode?: string;
+  compact?: boolean;
+}) {
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(signup, {});
 
   return (
-    <form action={formAction} className="mt-8 space-y-5">
+    <form action={formAction} className={`${compact ? "" : "mt-8"} space-y-5`}>
       <input type="hidden" name="next" value={next} />
 
       <label className="block">
@@ -53,6 +63,16 @@ export function SignupForm({ next }: { next: string }) {
       </label>
 
       <label className="block">
+        <span className={labelCls}>Class</span>
+        <input
+          name="className"
+          type="text"
+          placeholder="e.g. Class 12 (optional)"
+          className={inputCls}
+        />
+      </label>
+
+      <label className="block">
         <span className={labelCls}>Password</span>
         <input
           name="password"
@@ -62,6 +82,17 @@ export function SignupForm({ next }: { next: string }) {
           autoComplete="new-password"
           placeholder="At least 3 characters"
           className={inputCls}
+        />
+      </label>
+
+      <label className="block">
+        <span className={labelCls}>Referral code</span>
+        <input
+          name="referralCode"
+          type="text"
+          defaultValue={referralCode}
+          placeholder="Got a friend's code? Enter it for ₹20 off"
+          className={`${inputCls} uppercase placeholder:normal-case`}
         />
       </label>
 

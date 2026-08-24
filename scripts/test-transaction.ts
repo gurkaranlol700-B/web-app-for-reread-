@@ -66,7 +66,7 @@ async function main() {
 
   const { data: seller } = await db
     .from("profiles")
-    .select("id, name, payout_balance, is_plus")
+    .select("id, name, payout_balance, is_plus, rating_avg, rating_count")
     .eq("email", "seller@demo.com")
     .single();
   const { data: buyer } = await db
@@ -97,7 +97,14 @@ async function main() {
     created_at: new Date(Date.now() - 48 * 3_600_000).toISOString(),
   });
 
+  // Snapshot everything this test will disturb. The cleanup used to reset the
+  // seller's rating to zero, which quietly destroyed the seeded demo history
+  // every time the test ran — the test has to leave the world as it found it.
   const payoutBefore = Number(seller!.payout_balance) || 0;
+  const sellerRatingBefore = {
+    rating_avg: Number(seller!.rating_avg) || 0,
+    rating_count: Number(seller!.rating_count) || 0,
+  };
 
   try {
     // ---- 1. Chat ----------------------------------------------------------
@@ -248,7 +255,7 @@ async function main() {
     // Put the seller's rating and balance back exactly as they were.
     await db
       .from("profiles")
-      .update({ payout_balance: payoutBefore, rating_avg: 0, rating_count: 0 })
+      .update({ payout_balance: payoutBefore, ...sellerRatingBefore })
       .eq("id", seller!.id);
     await db
       .from("profiles")

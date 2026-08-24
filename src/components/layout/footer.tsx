@@ -7,6 +7,7 @@ const footerSections = [
     title: "Platform",
     links: [
       { href: "/browse", label: "Explore Books" },
+      { href: "/get", label: "Get the App" },
       { href: "/sell", label: "List a Book" },
       { href: "/#why", label: "How it Works" },
     ],

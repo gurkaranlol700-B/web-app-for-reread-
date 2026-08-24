@@ -17,6 +17,7 @@ import {
 import { startChat } from "@/app/actions/chat";
 import { BuyButton } from "@/components/marketplace/buy-button";
 import { ConditionBadge } from "@/components/marketplace/condition-badge";
+import { ShareButton } from "@/components/marketplace/share-button";
 import { WishlistButton } from "@/components/marketplace/wishlist-button";
 import { getDiscountPercent } from "@/data/books";
 import { getCurrentUser } from "@/lib/auth";
@@ -212,7 +213,22 @@ export default async function BookDetailPage({
             {user && !isOwn ? (
               <WishlistButton listingId={book.id} initialSaved={saved} size="lg" />
             ) : null}
+
+            {/* Sharing is open to everyone, signed in or not — a link passed
+                into a class WhatsApp group is the cheapest new visitor there
+                is, and asking someone to log in first would kill it. */}
+            <ShareButton title={book.title} price={book.price} path={`/books/${book.id}`} compact />
           </div>
+
+          {isOwn ? (
+            <div className="mt-4">
+              <p className="text-muted-foreground mb-2 text-sm">
+                Send it to your class group — most books sell to someone who
+                already knows you.
+              </p>
+              <ShareButton title={book.title} price={book.price} path={`/books/${book.id}`} />
+            </div>
+          ) : null}
 
           {locked ? (
             <p className="border-brand/40 bg-brand/5 text-muted-foreground mt-4 rounded-xl border p-3 text-xs leading-relaxed">

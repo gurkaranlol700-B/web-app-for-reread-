@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Eye, Target, Users } from "lucide-react";
 
 import { CampaignForm } from "@/components/ads/campaign-form";
@@ -13,9 +12,12 @@ export const metadata = {
 };
 
 export default async function AdvertisePage() {
+  // Deliberately NOT gated. The people who read this page are coaching
+  // institutes and bookshops, not students — they have no reason to own a
+  // ReRead account yet, and a login wall in front of the pitch is how you
+  // lose an advertiser before they've read a word. Only the act of launching
+  // a campaign needs an account, because a campaign has to belong to someone.
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=/advertise");
-
   const stats = await getStats();
 
   const points = [
@@ -63,7 +65,31 @@ export default async function AdvertisePage() {
         <p className="text-muted-foreground mt-2 text-sm">
           Takes two minutes. Pay by UPI or card, and we review it before it runs.
         </p>
-        <CampaignForm />
+
+        {user ? (
+          <CampaignForm />
+        ) : (
+          <div className="border-border bg-card mt-6 rounded-2xl border p-6">
+            <p className="leading-relaxed">
+              Campaigns are tied to an account so you can pause them and watch
+              your clicks. Creating one takes a few seconds.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link
+                href="/signup?next=/advertise"
+                className="bg-brand text-brand-foreground inline-flex h-11 items-center rounded-full px-6 text-sm font-semibold transition-opacity hover:opacity-90"
+              >
+                Create a business account
+              </Link>
+              <Link
+                href="/login?next=/advertise"
+                className="border-border hover:border-brand inline-flex h-11 items-center rounded-full border px-6 text-sm font-semibold transition-colors"
+              >
+                I already have one
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       <p className="text-muted-foreground mt-8 text-sm">

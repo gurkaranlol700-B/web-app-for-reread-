@@ -13,7 +13,8 @@
     "status": "tsx scripts/status.ts",
     "smoke": "tsx scripts/smoke.ts",
     "test:txn": "tsx --conditions=react-server scripts/test-transaction.ts",
-    "verify": "npm run typecheck && npm run lint && npm run smoke && npm run test:txn"
+    "verify": "npm run typecheck && npm run lint && npm run smoke && npm run test:txn",
+    "seed:activity": "tsx scripts/seed-activity.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
